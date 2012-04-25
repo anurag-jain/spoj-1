@@ -55,67 +55,49 @@ template<class T, class U> T cast (U x) { ostringstream os; os<<x; T res; istrin
 template<class T> vector<T> split(string s, string x=" ") {vector<T> res; for(int i=0;i<s.size();i++){string a; while(i<(int)s.size()&&x.find(s[i])==string::npos)a+=s[i++]; if(!a.empty())res.push_back(cast<T>(a));} return res;}
 template<class T> T inside(T r,T c,T R, T C){return r>=0 && r<R && c>=0 && c<C;}
 
-const int BUF_SIZE = 65536;
-char input[BUF_SIZE];
+char buf[1<<20];
+int pos;
 
-struct Scanner {
-	char* curPos;
+int nextInt() {
+	while (buf[pos] <= ' ') ++pos;
+	int res = 0;
+	while (buf[pos] > ' ') 
+		res = res * 10 + (buf[pos++] & 15);
+	return res;
+}
 
-	Scanner() {
-		fread(input, 1, sizeof(input), stdin);
-		curPos = input;
-	}
-
-	void ensureCapacity(){
-		int size = input + BUF_SIZE - curPos;
-		if (size < 100) {
-			memcpy(input, curPos, size);
-			fread(input + size, 1, BUF_SIZE - size, stdin);
-			curPos = input;
-		}
-	}
-
-	int nextInt() {
-		ensureCapacity();
-		while (*curPos <= ' ') ++curPos;
-		int res = 0;
-		while (*curPos > ' ') 
-			res = res * 10 + (*(curPos++) & 15);
-		return res;
-	}
-};
-
-const int maxnodes = 10000;
+const int maxnodes = 5000;
 
 int nodes = maxnodes, src, dest;
-int dist[maxnodes], curflow[maxnodes], prevedge[maxnodes], prevnode[maxnodes], Q[maxnodes], work[maxnodes];
+short dist[maxnodes], q[maxnodes], work[maxnodes];
 
 struct Edge {
-	int to, f, cap, rev;
+	short to,rev;
+	int f, cap;
 };
 
-vector<Edge> graph[maxnodes];
+vector<Edge> g[maxnodes];
 
 void addEdge(int s, int t, int cap){
-	Edge a = {t, 0, cap, graph[t].size()};
-	Edge b = {s, 0, cap, graph[s].size()};
-	graph[s].push_back(a);
-	graph[t].push_back(b);
+	Edge a = {t, g[t].size(), 0, cap};
+	Edge b = {s, g[s].size(), 0, cap};
+	g[s].push_back(a);
+	g[t].push_back(b);
 }
 
 bool dinic_bfs() {
 	fill(dist, dist + nodes, -1);
 	dist[src] = 0;
-	int sizeQ = 0;
-	Q[sizeQ++] = src;
-	for (int i = 0; i < sizeQ; i++) {
-		int u = Q[i];
-		for (int j = 0; j < (int) graph[u].size(); j++) {
-			Edge &e = graph[u][j];
+	int qt = 0;
+	q[qt++] = src;
+	for (int qh = 0; qh < qt; qh++) {
+		int u = q[qh];
+		for (int j = 0; j < (int) g[u].size(); j++) {
+			Edge &e = g[u][j];
 			int v = e.to;
 			if (dist[v] < 0 && e.f < e.cap) {
 				dist[v] = dist[u] + 1;
-				Q[sizeQ++] = v;
+				q[qt++] = v;
 			}
 		}
 	}
@@ -125,15 +107,15 @@ bool dinic_bfs() {
 int dinic_dfs(int u, int f) {
 	if (u == dest)
 		return f;
-	for (int &i = work[u]; i < (int) graph[u].size(); i++) {
-		Edge &e = graph[u][i];
+	for (short &i = work[u]; i < (int) g[u].size(); i++) {
+		Edge &e = g[u][i];
 		if (e.cap <= e.f) continue;
 		int v = e.to;
 		if (dist[v] == dist[u] + 1) {
 			int df = dinic_dfs(v, min(f, e.cap - e.f));
 			if (df > 0) {
 				e.f += df;
-				graph[v][e.rev].f -= df;
+				g[v][e.rev].f -= df;
 				return df;
 			}
 		}
@@ -158,16 +140,17 @@ int main( int argc, char* argv[] ) {
 	freopen("input.txt","r",stdin);
 	#endif	
 
-	Scanner sc;
-	int n = sc.nextInt();
-	int m = sc.nextInt();
+	fread(buf, 1, sizeof(buf), stdin);
+	
+	int n = nextInt();
+	int m = nextInt();
 
 	nodes = n;
 
 	rep(i,m){
-		int a = sc.nextInt();
-		int b = sc.nextInt();
-		int c = sc.nextInt();
+		int a = nextInt();
+		int b = nextInt();
+		int c = nextInt();
 		addEdge(a - 1, b - 1, c);
 	}
 
