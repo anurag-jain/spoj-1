@@ -86,21 +86,30 @@ struct Scanner {
 };
 
 const int maxnodes = 10000;
+const int maxedges = 600000;
 
-int nodes = maxnodes, src, dest;
-int dist[maxnodes], curflow[maxnodes], prevedge[maxnodes], prevnode[maxnodes], Q[maxnodes], work[maxnodes];
+int src, dest, edges, nodes;
+int head[maxedges], dist[maxnodes], Q[maxnodes];
+int last[maxnodes], prev[maxedges], work[maxnodes];
+int flow[maxedges], cap[maxedges];
 
-struct Edge {
-	int to, f, cap, rev;
-};
+void graphClear(int _nodes) {
+	fill(last, last + _nodes, -1);
+	edges = 0;
+	nodes = _nodes;
+}
 
-vector<Edge> graph[maxnodes];
-
-void addEdge(int s, int t, int cap){
-	Edge a = {t, 0, cap, graph[t].size()};
-	Edge b = {s, 0, cap, graph[s].size()};
-	graph[s].push_back(a);
-	graph[t].push_back(b);
+void addEdge(int u, int v, int cap1, int cap2) {
+	head[edges] = v;
+	cap[edges] = cap1;
+	flow[edges] = 0;
+	::prev[edges] = last[u];
+	last[u] = edges++;
+	head[edges] = u;
+	cap[edges] = cap2;
+	flow[edges] = 0;
+	::prev[edges] = last[v];
+	last[v] = edges++;
 }
 
 bool dinic_bfs() {
@@ -110,10 +119,9 @@ bool dinic_bfs() {
 	Q[sizeQ++] = src;
 	for (int i = 0; i < sizeQ; i++) {
 		int u = Q[i];
-		for (int j = 0; j < (int) graph[u].size(); j++) {
-			Edge &e = graph[u][j];
-			int v = e.to;
-			if (dist[v] < 0 && e.f < e.cap) {
+		for (int e = last[u]; e >= 0; e = ::prev[e]) {
+			int v = head[e];
+			if (dist[v] < 0 && flow[e] < cap[e]) {
 				dist[v] = dist[u] + 1;
 				Q[sizeQ++] = v;
 			}
@@ -125,15 +133,13 @@ bool dinic_bfs() {
 int dinic_dfs(int u, int f) {
 	if (u == dest)
 		return f;
-	for (int &i = work[u]; i < (int) graph[u].size(); i++) {
-		Edge &e = graph[u][i];
-		if (e.cap <= e.f) continue;
-		int v = e.to;
-		if (dist[v] == dist[u] + 1) {
-			int df = dinic_dfs(v, min(f, e.cap - e.f));
+	for (int &e = work[u]; e >= 0; e = ::prev[e]) {
+		int v = head[e];
+		if (dist[v] == dist[u] + 1 && flow[e] < cap[e]) {
+			int df = dinic_dfs(v, min(f, cap[e] - flow[e]));
 			if (df > 0) {
-				e.f += df;
-				graph[v][e.rev].f -= df;
+				flow[e] += df;
+				flow[e ^ 1] -= df;
 				return df;
 			}
 		}
@@ -146,7 +152,7 @@ ll maxFlow(int _src, int _dest) {
 	dest = _dest;
 	ll result = 0;
 	while (dinic_bfs()) {
-		fill(work, work + nodes, 0);
+		copy(last, last + nodes, work);
 		while (int delta = dinic_dfs(src, INT_MAX))
 			result += delta;
 	}
@@ -154,6 +160,29 @@ ll maxFlow(int _src, int _dest) {
 }
 
 int main( int argc, char* argv[] ) {
+	/*
+	{
+		freopen("input.txt","w",stdout);
+		int n=10000;
+		int m=100000;
+		cout<<n<<" "<<m<<endl;
+		vvb used(n, vb(n));
+		rep(i,m){
+			int a,b;
+			while(1){
+				a=rand()%n;
+				b=rand()%n;
+				if(a>b)swap(a,b);
+				if(a!=b && !used[a][b])break;
+			}
+			used[a][b]=true;
+			int c=rand()*rand()+1;
+			cout<<a+1<<" "<<b+1<<" "<<c<<endl;
+		}
+		exit(0);
+	}
+	*/
+
 	#ifndef ONLINE_JUDGE
 	freopen("input.txt","r",stdin);
 	#endif	
@@ -162,13 +191,13 @@ int main( int argc, char* argv[] ) {
 	int n = sc.nextInt();
 	int m = sc.nextInt();
 
-	nodes = n;
+	graphClear(n);
 
 	rep(i,m){
 		int a = sc.nextInt();
 		int b = sc.nextInt();
 		int c = sc.nextInt();
-		addEdge(a - 1, b - 1, c);
+		addEdge(a-1, b-1, c, c);
 	}
 
 	clock_t start=clock();

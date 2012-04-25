@@ -10,9 +10,6 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="DYNALCA.cpp" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{965465B0-4D4E-41FB-9B67-12B628ADDCFC}</ProjectGuid>
     <RootNamespace>spoj</RootNamespace>
